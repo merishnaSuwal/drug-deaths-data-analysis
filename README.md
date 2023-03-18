@@ -10,6 +10,10 @@ The data set Accidental Drug Related Deaths from 2012-2021 in Connecticut has be
 
 The data set was collected by the Office of the Chief Medical Examiner in Connecticut through an investigation process that includes a toxicity report, death certificate, and a scene investigation. It includes 48 columns with information such as the number of deaths, demographic information of those who died (such as age, race, and gender), and the location and substances detected in the overdose for 9202 individuals.
 
+### Report
+
+You can find the report [here](https://merishnasuwal.github.io/drug-deaths-data-analysis/).
+
 ### References
 
 Connecticut Data (2021). Accidental Drug-Related Deaths 2012-2021. Retrieved from https://data.ct.gov/Health-and-Human-Services/Accidental-Drug-Related-Deaths-2012-2021/rybz-nyjwLinks
