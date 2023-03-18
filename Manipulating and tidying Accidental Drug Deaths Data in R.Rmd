@@ -1,0 +1,452 @@
+---
+title: "Manipulating and tidying Accidental Drug Deaths Data in R: Techniques and Insights"
+author: "Merishna Singh Suwal"
+
+output:
+    html_document:
+        theme: united
+        highlight: kate
+        toc: true
+        toc_depth: 2
+        toc_float: true
+        df_print: paged
+        code_folding: hide
+        css: |
+          p {
+            text-align: justify;
+          }
+---
+
+```{r setup, include=FALSE}
+# Do not delete this code chunk.
+# This code chunk is important for rendering your Microsoft Word file.
+library(rmdformats)
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE) 
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+library(tidyverse)
+library(ggplot2)
+install.packages("forcats")
+library(forcats)
+```
+
+## Abstract
+
+Accidental drug deaths have become a growing public health concern in recent times. The need for effective prevention and control measures necessitates comprehensive data analysis and insights. The case study presents an analysis of accidental drug deaths data in Connecticut from 2012 to 2021, utilizing R programming language and its libraries, including dplyr and ggplot2, to extract valuable insights through data manipulation techniques.
+
+The study aims to tidy the raw data obtained from the open data sources and perform data manipulation to make it fit for analysis and further insights. The insights from the study aims to aid healthcare professionals in identifying trends and patterns in drug deaths among diverse demographics, particularly the vulnerability of certain genders and age groups to drug-related deaths, and the specific drugs involved. Additionally, the findings of the study can be used to highlight the heightened vulnerability of specific groups to drug-related deaths, with some drugs more commonly involved than others. Furthermore, the study insights are particularly useful in identifying certain geographic hot-spots for drug deaths in Connecticut, emphasizing the importance of targeted interventions to prevent accidental drug deaths.Through this study, we focus on the organization and preparation of data on accidental drug-related deaths in the state of Connecticut to demonstrate the importance of data transformations in data analysis and to illustrate how doing so can lead to more meaningful insights and conclusions.
+
+**Keywords:** Accidental drug deaths, Prevention, Data analysis, Data manipulation
+
+## 1. Introduction
+
+### 1.1. Literature Review
+
+Drug overdose deaths have been a growing problem in the United States in recent years, and accurate data analysis is essential for developing effective prevention and control measures. This literature review provides an overview of the significance of data manipulation methods in deriving meaningful insights from intricate and large data sets, with a particular focus on accidental drug deaths. 
+
+Data manipulation and tidying are essential parts of the data analysis process, as they help transform raw data into a format that is more easily understandable and useful for decision-making. This process involves tasks such as cleaning, transforming, and restructuring data to identify trends and patterns that can provide valuable insights into drug overdose deaths. Several studies have examined drug deaths data in Connecticut and the insights that can be derived from manipulating and tidying this data. One study analyzed data from the Centers for Disease Control and Prevention (CDC) on opioid overdose deaths between 2000 and 2015. This study aimed to investigate the racial and ethnic differences in opioid overdose deaths in the United States. The researchers found that while all racial and ethnic groups experienced an increase in opioid overdose deaths during this period, the rate of increase was highest among non-Hispanic whites. The study also found that the rate of opioid overdose deaths was significantly higher among non-Hispanic whites and American Indian/Alaska Natives compared to other racial and ethnic groups. The findings suggest that targeted interventions are needed to address the racial and ethnic disparities in opioid overdose deaths in the United States.
+
+The insights derived from data manipulation and tidying in these studies have important policy implications. Policymakers and public health authorities can use this information to develop targeted prevention and control measures that address the specific needs of high-risk groups. These measures can include initiatives such as public education campaigns, improved access to addiction treatment services, and stricter regulations on prescription drug use.
+
+### 1.2. Data Overview and Utilization
+
+<!--# Summarize the data you obtained. What are the measurements? How was this data collected? Who collected this data? -->
+
+The data set **Accidental Drug Related Deaths from 2012-2021 in Connecticut** has been derived from Connecticut Open Data Repository (Connecticut Data, 2021). Drug overdose is one of the leading causes of injury-related deaths in the U.S (Hedegaard, Minino, & Warner, 2020). An estimated number of 100,000 people have died in between April 2020 to 2021 due to drug overdoses, which was an increase of 28.5% from the previous year according to the CDC (2021).
+
+The data set was collected by the Office of the Chief Medical Examiner in Connecticut through an investigation process that includes a toxicity report, death certificate, and a scene investigation. It includes 48 columns with information such as the number of deaths, demographic information of those who died (such as age, race, and gender), and the location and substances detected in the overdose for 9202 individuals.
+
+
+```{r echo=TRUE}
+# Read data set and check number of rows and columns
+data <- read_csv('Accidental_Drug_Related_Deaths_2012-2021.csv', show_col_types = FALSE)
+```
+
+The data set contains the following columns that describe the demographics of the patients such as their age, race, ethnicity, location and the kind of drug toxicity:
+
+```{r, echo=TRUE}
+# column names
+names(data) 
+```
+Here is a sample of six rows of the data:
+
+```{r echo=TRUE}
+# sample of the data set
+head(data)
+```
+**Table 1.2 :** Sample of the data
+
+Accidental drug deaths data is essential for health professionals, particularly those working in public health, epidemiology, substance abuse treatment, and healthcare delivery. This data can provide valuable insights into drug overdose trends, help identify patterns and high-risk populations, and inform public health policies and interventions.The power of data in healthcare cannot be understated, especially when it comes to understanding the extent of drug abuse and overdose within a specific population. With the Accidental Drug Related Deaths data, healthcare professionals have a unique opportunity to gain deep insights into drug-related death trends and patterns that can be used to inform the development of targeted prevention and intervention strategies.
+
+By using data transformation and visualization methods, healthcare professionals can more effectively identify high-risk groups and develop preventative measures such as education programs and harm reduction strategies. The visualizations can help them analyze the data and understand the types of drugs involved, the demographics of the victims, and the geographical distribution of incidents. This information can be leveraged to monitor the prevalence and incidence of drug overdoses in specific populations or geographical areas and inform public health policy and intervention strategies.
+
+## 2. Methodology
+
+### 2.1. Data Tidying Techniques
+
+The data set obtained is a **raw** data set, meaning, it might have issues with inconsistencies in the data formatting and the way columns are arranged. We will now illustrate the use of a series of commands in order to make this data set "tidy". A tidy data set can be used for performing robust analysis and gaining insights from the data which are not biased or error-prone.
+
+1.  As illustrated from the data **Table 1** above, the `Date` column contains values for both `Date of death` and `Date reported`, which makes the data set unclear and untidy. Hence, the columns depicting `Date` and `Date Type` need to be changed to depict `Date of death` and `Date reported` columns instead by using a pivoting technique. The `pivot_wider()` method should be used to add two columns `date of death` and `date reported` on a new data frame `new_data`.
+
+```{r, echo=TRUE}
+
+# Changing date of death and date reported columns using pivoting
+
+new_data_reorder <- data %>% 
+  pivot_wider(
+    names_from = `Date Type`, 
+    values_from = c(Date)
+  )
+
+sample(new_data_reorder[, c('Date of death','Date reported')])
+
+```
+
+2.  The value in the column `ResidenceCityGeo`, `InjuryCityGeo`and `DeathCityGeo` should be divided into two columns `City` and `CityGeo` respectively.  Also, the City contains the "CT" state value is is redundant. To separate the redundant values in the columns `ResidenceCityGeo`, `InjuryCityGeo`and `DeathCityGeo`, the `separate()` method is used which results in a cleaner data set as follows.
+
+```{r}
+
+# separating the value of column into multiple columns using separate method
+
+# Separating City and Geo location
+new_data_formatted <- separate(data = new_data_reorder, col = ResidenceCityGeo, into = c("Residence City", "ResidenceCityGeo"), sep = "\\\n", remove = TRUE)
+
+# Separating City and State
+new_data_formatted2 <- separate(data = new_data_formatted, col = `Residence City`, into = c("Residence City", "State"), sep = ", ", remove = TRUE)
+
+# Separating City and Geo location
+new_data_formatted3 <- separate(data = new_data_formatted2, col = DeathCityGeo, into = c("Death City", "DeathCityGeo"), sep = "\\\n", remove = TRUE)
+
+# Separating City and State
+new_data_formatted4 <- separate(data = new_data_formatted3, col = `Death City`, into = c("Death City", "State"), sep = ", ", remove = TRUE)
+
+# Separating City and Geo location
+new_data_formatted5 <- separate(data = new_data_formatted4, col = InjuryCityGeo, into = c("Injury City", "InjuryCityGeo"), sep = "\\\n", remove = TRUE)
+
+# Separating City and State
+new_data_formatted6 <- separate(data = new_data_formatted5, col = `Injury City`, into = c("Injury City", "State"), sep = ", ", remove = TRUE)
+
+# preview the formatted data
+head(new_data_formatted6[, c("Residence City", "ResidenceCityGeo", "Injury City", "InjuryCityGeo", "Death City", "DeathCityGeo")])
+
+```
+
+3.  Fill the null values for different columns. 
+
+Firstly, we need to fill the null values in the columns that present the drug detected (Y/N) to 'N' in cases of `NA`. In order to address the problem of null data values, the `replace_na()` method is used.
+
+```{r, echo=TRUE}
+
+new_data_fill <- new_data_formatted6 %>% 
+  mutate_at(c("Heroin", "Cocaine", "Fentanyl", "Fentanyl Analogue", "Oxycodone", "Oxymorphone", "Ethanol", "Hydrocodone", "Benzodiazepine", "Methadone", "Meth/Amphetamine", "Amphet", "Tramad", "Hydromorphone", "Morphine (Not Heroin)", "Xylazine", "Gabapentin", "Opiate NOS", "Heroin/Morph/Codeine", "Other Opioid", "Any Opioid", "Other"), ~replace_na(., "N"))
+
+# view a sample
+head(new_data_fill[,c("Heroin", "Cocaine", "Fentanyl", "Fentanyl Analogue", "Oxycodone", "Oxymorphone", "Ethanol", "Hydrocodone", "Benzodiazepine", "Methadone", "Meth/Amphetamine", "Amphet", "Tramad", "Hydromorphone", "Morphine (Not Heroin)", "Xylazine", "Gabapentin", "Opiate NOS", "Heroin/Morph/Codeine", "Other Opioid", "Any Opioid", "Other")])
+
+```
+
+Similarly, the `Age` column can be filled with the median value of the Age. 
+
+```{r}
+
+# Calculate the median of the non-missing values
+median_age <- median(new_data_fill$Age, na.rm = TRUE)
+
+# Replace missing values with the median
+new_data_fill <- new_data_fill %>% 
+  mutate_at(c("Age"), ~replace_na(., median_age))
+
+tail(new_data_fill[, c("Age")], 10)
+```
+
+The null values in most columns such as `Ethnicity` can be filled with `"Unknown"`.
+
+```{r}
+data_tidy <- new_data_fill %>% replace(is.na(.), "Unknown")
+
+head(data_tidy)
+```
+The resulting data is the tidy data set.
+
+### 2.2. Data Transformation Techniques
+
+<!--# Indicate what changes to the data frame need to occur to optimize value for health professionals.  For example, should the data frame remove some columns, filter rows for particular variables, create a new column, etc.?-->
+
+To optimize the data to be valuable for health professionals, several changes to the data frame could be made. This process is also known as data cleaning or data manipulation which takes up to 80% time of data science and analytic projects.
+
+Based on the analysis of the Accidental Drug Deaths in Connecticut data set, the following three data transformation methods are required to be able to perform more focused and targeted analysis on the data set, identify patterns and disparities, and draw more accurate conclusions.
+
+**1. Select():** 
+
+The data set includes several variables that may not be relevant to our analysis, such as location of death and geo-locations. The select() function allows us to pick and choose only the columns we need for analysis, which reduces the size of the data set and allows us to focus on the variables that are most relevant for our analysis. In this case, we have chosen to select the columns "Date of death", "Date reported", "Age", "Sex", "Cause of Death", which provide us with key demographic information about the individuals who died and the circumstances surrounding their deaths. By selecting only these columns, we can streamline our analysis, draw meaningful insights from the data and reduce the risk of errors.
+
+We will be using the `select()` function to select the rows `"Date of death", "Date reported", "Age", "Sex", "Cause of Death",  "Death City" ` from the data set for preliminary analysis on individuals with death due to intoxication.
+
+```{r, echo=TRUE}
+
+# Select only few columns
+selected_data <- data_tidy %>%   
+                 select( "Date of death", "Date reported", "Age", "Sex", "Race", "Cause of Death", "Location", "Injury City", "InjuryCityGeo")
+
+selected_data %>% head(20)
+```
+
+**2. Filter():** 
+
+Since the data set includes all accidental drug deaths in Connecticut from 2012 to 2018, we can filter the data to focus on a specific year or range of years. In this case, we can use the function to filter the data by year to allow for targeted analysis, identify trends, and detect anomalies in specific time periods. For instance, filtering the data to focus on the year with the highest number of accidental drug deaths will enable us to investigate the underlying factors that contributed to this spike in deaths. This approach will provide more accurate and insightful results, rather than analyzing the entire data set at once. By filtering the data, we can also save time and resources that would have been used in analyzing irrelevant data, which is especially crucial when dealing with large data sets.
+
+Filter the data set for individuals aged less than 18 years. By focusing on these specific criteria, the data set can be more easily interpreted and analyzed for patterns and trends related to this age group to look for major trends in drug toxicity. This can lead to more targeted and effective interventions and treatments for these specific groups, ultimately improving health outcomes.
+
+```{r, echo=TRUE}
+
+# Filter and select a subset of data for age < 18
+data_subset <- selected_data %>%
+              filter(Age < 18) 
+
+data_subset %>% head(20)
+```
+
+**3. Group() and Summarize():** 
+
+The data set contains a large amount of information, including the types of drugs involved in the accidents and the demographics of the victims. We can group the data by specific variables, such as age or race, and summarize the information by calculating the number of deaths or percentage of deaths for each group. By summarizing the information, health professionals can obtain a clearer understanding of the factors contributing to accidental drug deaths and in identifying potential risk factors and developing targeted interventions and prevention strategies.
+
+Grouping and summarizing the data by Sex and Age to count the number of deaths and percentage of deaths.
+
+```{r, echo=TRUE}
+
+# Group the data by Sex and Age and summarize number of deaths
+sex_age_grp_data <- data_subset %>%
+                    group_by(Sex, Age)  %>% 
+                    summarize(num_deaths = n(),
+                              perc_deaths = n()/nrow(data_tidy)*100)
+
+sex_age_grp_data
+```
+
+Summarizing the data by Sex to count the number of deaths and percentage of deaths.
+
+```{r, echo=TRUE}
+
+# Group the data by Sex and summarize number of deaths
+sex_grouped_data <- selected_data %>%
+                    group_by(Sex)  %>% 
+                    summarize(num_deaths = n(),
+                              perc_deaths = n()/nrow(data_tidy)*100)
+
+sex_grouped_data
+```
+
+Summarizing the data by Race to count the number of deaths and percentage of deaths.
+
+```{r, echo=TRUE}
+
+# Group the data by Race and summarize number of deaths
+race_grouped_data <- selected_data %>%
+                    group_by(Race)  %>% 
+                    summarize(num_deaths = n(),
+                              perc_deaths = n()/nrow(data_tidy)*100)
+# reorder the levels of Race variable based on perc_deaths in ascending order
+race_grouped_data$Race <- fct_reorder(race_grouped_data$Race, race_grouped_data$perc_deaths)
+race_grouped_data
+```
+
+Summarizing the data by location of death to count the number of deaths.
+
+```{r, echo=TRUE}
+
+# Group the data by Location of Death and summarize number of deaths
+location_grouped_data <- selected_data %>%
+                    group_by(Location)  %>% 
+                    summarize(num_deaths = n())
+# reorder the levels of Race variable based on perc_deaths in ascending order
+location_grouped_data$Location <- fct_reorder(location_grouped_data$Location, location_grouped_data$num_deaths)
+location_grouped_data
+``` 
+
+### 2.3. Data Visualization and Analysis Techniques
+
+Accidental drug deaths data could benefit from various data visualization methods to help identify patterns, trends, and potential relationships in the data. They can be used to design targeted messaging and educational materials that address the specific needs of high-risk populations. This approach can be particularly effective in combating the drug-related death epidemic, as it allows healthcare professionals to better understand the needs of those who are most vulnerable. Using data visualization to evaluate the effectiveness of existing prevention and intervention programs is also crucial. By analyzing the data, healthcare professionals can determine which interventions are most effective and efficient. This approach ensures that resources are directed towards programs that can make a real difference.
+
+Overall, data visualization is a powerful tool that healthcare professionals can use to gain a deeper understanding of drug-related death trends and patterns. It allows them to develop targeted prevention and intervention strategies, design educational materials, and evaluate the effectiveness of existing programs. By leveraging data visualization, healthcare professionals can make a real difference in the fight against drug abuse and overdose. Here are some ways data visualization methods could be applied:
+
+**1. Distribution of Age for Drug-related deaths in Connecticut:** 
+
+Histograms are commonly used for exploring the distribution of a continuous variable, such as age, weight, or time. In the case of Accidental drug death data in CT, histograms can be a useful tool for exploring the distribution of variables such as age.
+
+By using histograms to visualize the distribution of age will allow us to see if there is a particular age group that is more affected by drug deaths. Histograms can also be helpful for identifying outliers in the data, which can provide insights into potential areas of concern. Additionally, histograms can be used to identify potential data entry errors or anomalies that may need to be further investigated.
+
+The process for plotting histogram using `ggplot2` library in R is as follows:
+
+- Select the desired column of the data to plot using dplyr.
+
+- Use ggplot() to create a new plot object.
+
+- Use aes() to specify the x-axis data.
+
+- Use geom_histogram() to plot the histogram with the desired binwidth and fill color.
+
+- Use scale_x_continuous() to set the desired x-axis range and breaks.
+
+- Use ggtitle(), xlab(), and ylab() to add appropriate titles and labels to the plot.
+
+A histogram can help visualize the distribution of ages of individuals who died due to drug-related causes in CT. The code below plots the histogram using `ggplot2` library in R for **"Distribution of Age for Drug-related deaths in Connecticut"**.
+
+
+```{r, echo=TRUE}
+ggplot(selected_data, aes(x=Age)) +
+  geom_histogram(fill="steelblue", color="black", binwidth = 5) +
+  scale_x_continuous(breaks = seq(0, 120, by = 10)) +
+  ggtitle("Distribution of Age for Drug-related deaths in Connecticut") +
+  xlab("Age") +
+  ylab("Number of individuals") +
+  theme_minimal() 
+```
+
+**Insights:**  
+
+One of the key insights that can be inferred from the histogram is that the majority of individuals suffering from drug-related deaths are in the age group of 30-40. This finding is particularly significant as it suggests that individuals in this age group may be more susceptible to drug addiction and its associated risks.
+
+Another important insight from this histogram is that there appears to be a gradual increase in the number of drug-related deaths as age increases, with a peak in the 30-40 age group, followed by a gradual decline in the number of deaths as age continues to increase. This finding highlights the importance of targeting interventions and resources towards individuals in their 30s and 40s in order to address the specific needs of this population and reduce the number of drug-related deaths in Connecticut.
+
+**2. Gender distribution of individuals younger than 18 for Drug-related deaths in Connecticut:**
+
+Bar plots are useful data visualization tools for presenting the distribution of drug-related deaths across different variables, such as age groups, genders, and drug types. A bar chart is ideal for comparing the frequency or count of different categories and identifying the most common categories. 
+
+A bar plot can help visualize the number of drug-related deaths by sex for individuals under the age of 18, allowing healthcare professionals to identify any significant differences in the occurrence of such deaths among males and females in CT. 
+
+The process for plotting a bar plot in R using `ggplot2` library is as follows:
+
+- Use dplyr to group the data by the desired column and count the number of occurrences in each group.
+
+- Use ggplot() to create a new plot object.
+
+- Use aes() to specify the x-axis and y-axis data.
+
+- Use geom_bar() to plot the bar chart.
+
+- Use ggtitle(), xlab(), and ylab() to add appropriate titles and labels to the plot.
+
+The code below plots a bar plot in R using `ggplot` library for **"Gender distribution of individuals younger than 18 for Drug-related deaths in Connecticut"**.
+
+```{r, echo=TRUE}
+ggplot(sex_age_grp_data, aes(x = Age, y = num_deaths, fill = Sex)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  ggtitle("Gender distribution of individuals younger than 18 for Drug-related deaths in Connecticut") +
+  xlab("Age") +
+  ylab("Number of individuals") +
+  theme_minimal() +
+  scale_fill_manual(values = c("steelblue", "lightcoral"))
+```
+
+**Insights:** 
+
+The bar plot illustrating the gender distribution of individuals below the age of 18 who have died due to drug-related causes provides important insights into the demographics of this vulnerable population. The data suggests that a disproportionate number of individuals below 18 have succumbed to drug addiction, and that this problem affects both males and females.
+
+One of the key insights from this plot is that the majority of individuals below 18 who died due to drug-related causes were 17 years old. This finding is concerning, as it suggests that many young people are becoming addicted to drugs at an early age, which can have serious long-term consequences for their health and well-being.
+
+**3. Proportion of different Race in Drug-related deaths in Connecticut:**
+
+```{r, echo=TRUE}
+
+# create a bar chart using ggplot2
+ggplot(race_grouped_data, aes(x=Race, y=perc_deaths)) +
+  geom_bar(stat="identity", width=0.5, fill="steelblue") +
+  labs(title="Proportion of different Race in Drug-related deaths in CT", fill="Race") +
+  xlab("") +  
+  ylab("Percentage of deaths") +
+  theme_minimal() +
+  coord_flip()
+```
+
+**Insights:** 
+
+The analysis indicates that the majority of deaths were among White individuals, followed by Black or African American individuals. This finding is concerning, as it highlights the disproportionate impact of drug addiction on certain racial and ethnic groups in the state.
+
+There are likely many factors that contribute to these disparities in drug-related deaths, including differences in access to healthcare and addiction treatment, economic and social factors, and historical and systemic racism. In order to address these disparities, it may be necessary to take a comprehensive and coordinated approach that addresses both the individual and structural factors that contribute to drug addiction and overdose deaths.
+
+**4. Proportion of different Location in Drug-related deaths in Connecticut:**
+
+```{r, echo=TRUE}
+
+# create a bar chart using ggplot2
+ggplot(location_grouped_data, aes(x=Location, y=num_deaths)) +
+  geom_bar(stat="identity", width=0.5, fill="steelblue") +
+  labs(title="Proportion of different Location in Drug-related deaths in CT", fill="Location") +
+  xlab("") +  
+  ylab("Number of deaths") +
+  theme_minimal() +
+  coord_flip()
+```
+
+**Insights:** 
+
+The analysis shows that the majority of individuals who died due to drug-related causes passed away in their own residences, followed by hospitals. This finding is a cause for concern, as it suggests that there may be a lack of adequate support or intervention available to those struggling with drug addiction, particularly in their own homes.
+
+**5. Proportion of different Gender in Drug-related deaths in Connecticut:**
+
+A pie chart is an effective tool for illustrating the proportion or percentage of each category within a whole. By using these charts, healthcare professionals can quickly identify patterns and trends in drug-related deaths and use this information to develop targeted prevention and intervention strategies. A pie chart can help visualize the percentage of drug-related deaths by sex, race, and location of death allowing healthcare professionals to identify patterns and commonality in the occurrence of such deaths among different groups in CT.
+
+The steps for plotting a pie chart using `ggplot2` library in R is as follows:
+
+- Use dplyr to group the data by the desired column and count the number of occurrences in each group.
+
+- Use ggplot() to create a new plot object.
+
+- Use aes() to specify the data and labels.
+
+- Use geom_col() to plot the pie chart.
+
+- Use coord_polar() to convert the chart to a polar coordinate system.
+
+- Use labs() to add an appropriate title to the plot and the legend.
+
+The code plot plots a pie charts for visualizing the **"Proportion of different Gender in Drug-related deaths in Connecticut"**.
+
+```{r, echo=TRUE}
+# create a pie chart using ggplot2
+ggplot(sex_grouped_data, aes(x="", y=perc_deaths, fill=Sex)) +
+  geom_bar(stat="identity", width=1) +
+  scale_fill_manual(values = c("steelblue", "lightcoral", "darkblue"))+
+  coord_polar(theta="y") +
+  labs(title="Proportion of different Gender in Drug-related deaths in CT", fill="Gender") +
+  xlab("") +  
+  ylab("Percentage of deaths") +
+  geom_text(aes(label = paste0(round(perc_deaths, 1), "%")), position = position_stack(vjust = 0.5), color = "white", size = 5) +
+  theme_minimal() 
+```
+
+**Insights:** 
+
+One of the key insights from this chart is that males dominate the chart, accounting for 75% of all drug-related deaths. This finding suggests that males may be more susceptible to drug addiction and its associated risks.
+
+Another important insight from this chart is that females represent only 25% of drug-related deaths, indicating that they are less affected by drug addiction than males. However, it is important to note that this does not mean that females are immune to the risks of drug addiction, and that targeted interventions and resources may be needed to address the specific needs of this population.
+
+## 3. Conclusion
+
+In conclusion, the data manipulation, tidying and visualization techniques applied in this report have provided valuable insights into the extent and impact of accidental drug-related deaths in Connecticut. Through visualizing the data in various ways, including histograms, bar plots, and pie charts, we have been able to identify important trends and patterns, such as the most commonly involved groups and the demographics of the victims.
+
+The histogram of drug-related deaths in Connecticut provides valuable insights into the demographics of this issue concerning that there appears to be a gradual increase in the number of drug-related deaths as age increases, with a peak in the 30-40 age group, followed by a gradual decline in the number of deaths as age continues to increase. This finding highlights the importance of targeting interventions and resources towards individuals in their 30s and 40s in order to address the specific needs of this population and reduce the number of drug-related deaths in Connecticut.   
+
+The bar plot illustrating the gender distribution of individuals below the age of 18 who have died due to drug-related causes highlights the importance of addressing drug addiction as a public health issue affecting both males and females. Additionally, the finding that Whites constitute the majority of drug-related deaths in Connecticut from 2012-2021 followed by Black or African Americans highlights the need for targeted interventions that address the specific needs and challenges faced by different racial and ethnic groups. Also, the finding that most individuals who died due to drug-related causes passed away in their own residences highlights the need for a comprehensive and coordinated approach to addressing drug addiction and reducing the number of overdose deaths. Finally, another important insight from this chart is that females represent only 25% of drug-related deaths, indicating that they are less affected by drug addiction than males. 
+
+These insights can be used by healthcare professionals and policymakers to develop targeted prevention and intervention strategies that are more effective and efficient in addressing the drug-related death epidemic. Furthermore, the use of data visualization has facilitated a better understanding of the underlying issues and risk factors associated with drug abuse and overdose. As the drug-related death epidemic continues to impact communities across the United States, data analysis and visualization remains a critical tool for healthcare professionals and policymakers to effectively combat this public health crisis. The insights and recommendations derived from the techniques employed in this report can serve as a starting point for further research and policy development aimed at reducing the number of drug-related deaths in Connecticut and beyond.
+
+## 4. References
+
+Connecticut Data (2021). Accidental Drug-Related Deaths 2012-2021. Retrieved from <https://data.ct.gov/Health-and-Human-Services/Accidental-Drug-Related-Deaths-2012-2021/rybz-nyjwLinks>
+
+Centers for Disease Control and Prevention (CDC) (2021, November 17). New CDC data show drug overdose deaths increased in 2020, driven by synthetic opioids. Retrieved from <https://www.cdc.gov/nchs/pressroom/nchs_press_releases/2021/20211117.htm>
+
+Hedegaard H, Minino AM, Warner M. (2020). Drug overdose deaths in the United States, 1999--2019. NCHS Data Brief, no 394. Hyattsville, MD: National Center for Health Statistics.
+
+Kaiser Family Foundation. (2021). Opioid Overdose Deaths by Race/Ethnicity. Retrieved from <https://www.kff.org/other/state-indicator/opioid-overdose-deaths-by-raceethnicity/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D>
+
+Nahhas, R. W. (n.d.). Inspecting and transforming data. In Introduction to R. Retrieved from <https://bookdown.org/rwnahhas/IntroToR/inspect.html>
+
+University of Cincinnati Research & Development Center. (n.d.). Pipe: An introduction to the magrittr-style pipes in R. Retrieved February 23, 2023, from <https://uc-r.github.io/pipe>
+
+Wickham, H. (2014). Tidy data. Journal of Statistical Software, 59(10), 1-23. Retrieved from <https://vita.had.co.nz/papers/tidy-data.pdf> 
+
+Wickham, H. (n.d.). tidyr: Easily Tidy Data with 'spread()' and 'gather()' Functions. The Comprehensive R Archive Network (CRAN). Retrieved January 25, 2023, from <https://cran.r-project.org/web/packages/tidyr/vignettes/pivot.html>
+
+Wickham, H., Danenberg, M., Eugster, R., Goulet, L., Loman, T., Takahashi, I., & Vaughan, D. (2019). Visualizing complex data with R: lessons learned from the trenches. Journal of Big Data. <https://doi.org/10.1186/s40537-019-0191-1>
